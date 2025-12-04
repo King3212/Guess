@@ -1,0 +1,30 @@
+# API Configuration (Sensitive Data)
+API.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / Build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# PyInstaller
+*.spec
+*.manifest
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE Settings
+.vscode/
+.idea/
+
+# Logs
+*.log
