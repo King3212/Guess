@@ -1,5 +1,7 @@
 # Comprehensive Spectral Analysis Program (Guess)
 
+[中文说明 (Chinese README)](README_zh.md)
+
 This is an AI-based tool for inferring organic molecular structures. It integrates the analysis of Mass Spectrometry (Mass), Infrared Spectroscopy (IR), Proton NMR (1H NMR), and Carbon NMR (13C/DEPT NMR) data, utilizing Large Language Models (such as GPT-4, Qwen, DeepSeek, etc.) to progressively infer functional groups and the final molecular structure.
 
 ## Features
@@ -14,6 +16,8 @@ This is an AI-based tool for inferring organic molecular structures. It integrat
 
 ## Installation
 
+### Us
+
 1.  Ensure Python 3.8 or higher is installed.
 2.  Install dependencies:
     ```bash
@@ -24,6 +28,13 @@ This is an AI-based tool for inferring organic molecular structures. It integrat
 ## User Guide
 
 ### 1. Start the Program
+
+**Option A: Run Executable (Recommended for Windows)**
+1.  Navigate to the `dist` folder.
+2.  Double-click `GuessUI.exe` to launch the application.
+    *   *Note: The `dist` folder contains necessary configuration files (`API.json`) and examples.*
+
+**Option B: Run from Source**
 Run `gui.py` to launch the graphical interface:
 ```bash
 python gui.py
