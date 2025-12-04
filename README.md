@@ -1,54 +1,54 @@
-# 综合光谱解析程序 (Guess)
+# Comprehensive Spectral Analysis Program (Guess)
 
-这是一个基于 AI 的有机分子结构推断工具。它能够综合分析质谱 (Mass)、红外光谱 (IR)、氢谱 (1H NMR) 和碳谱 (13C/DEPT NMR) 数据，利用大语言模型（如 GPT-4, Qwen, DeepSeek 等）逐步推断分子的官能团和最终结构。
+This is an AI-based tool for inferring organic molecular structures. It integrates the analysis of Mass Spectrometry (Mass), Infrared Spectroscopy (IR), Proton NMR (1H NMR), and Carbon NMR (13C/DEPT NMR) data, utilizing Large Language Models (such as GPT-4, Qwen, DeepSeek, etc.) to progressively infer functional groups and the final molecular structure.
 
-## 功能特点
+## Features
 
-*   **多谱综合分析**：支持 Mass, IR, 1H NMR, 13C NMR (BB/DEPT) 数据整合。
-*   **图形用户界面 (GUI)**：提供直观的 Tkinter 界面，方便操作。
-*   **分步推断**：
-    *   **Step 1**: 数据预处理与标准化。
-    *   **Step 2**: AI 推测可能的官能团。
-    *   **Step 3**: AI 综合证据链推断分子式与结构简式。
-*   **自定义 AI 配置**：支持 OpenAI 兼容接口，可自定义 Base URL 和 Model。
+*   **Multi-Spectrum Integrated Analysis**: Supports integration of Mass, IR, 1H NMR, and 13C NMR (BB/DEPT) data.
+*   **Graphical User Interface (GUI)**: Provides an intuitive Tkinter interface for easy operation.
+*   **Step-by-Step Inference**:
+    *   **Step 1**: Data preprocessing and standardization.
+    *   **Step 2**: AI infers possible functional groups.
+    *   **Step 3**: AI synthesizes the chain of evidence to infer the molecular formula and structural formula.
+*   **Custom AI Configuration**: Supports OpenAI-compatible interfaces, allowing customization of Base URL and Model.
 
-## 安装说明
+## Installation
 
-1.  确保已安装 Python 3.8 或更高版本。
-2.  安装依赖库：
+1.  Ensure Python 3.8 or higher is installed.
+2.  Install dependencies:
     ```bash
     pip install -r requirements.txt
     ```
-    *(注：GUI 使用 Python 内置的 `tkinter`，通常无需额外安装)*
+    *(Note: The GUI uses Python's built-in `tkinter`, which usually does not require separate installation)*
 
-## 使用指南
+## User Guide
 
-### 1. 启动程序
-运行 `gui.py` 启动图形界面：
+### 1. Start the Program
+Run `gui.py` to launch the graphical interface:
 ```bash
 python gui.py
 ```
 
-### 2. 配置 API
-在程序界面的 "AI API 配置" 区域填写你的 API 信息：
-*   **Base URL**: API 服务地址 (例如 `https://api.openai.com/v1` 或其他兼容地址)
-*   **API Key**: 你的 API 密钥
-*   **Model**: 使用的模型名称 (建议使用逻辑推理能力强的模型)
+### 2. Configure API
+Fill in your API information in the "AI API Configuration" section of the interface:
+*   **Base URL**: API service address (e.g., `https://api.openai.com/v1` or other compatible addresses)
+*   **API Key**: Your API key
+*   **Model**: The model name to use (models with strong logical reasoning capabilities are recommended)
 
-你可以分别配置 Step 2 (官能团推测) 和 Step 3 (结构推测) 使用不同的模型配置，也可以保存为默认配置 (`API.json`)。
+You can configure different model settings for Step 2 (Functional Group Inference) and Step 3 (Structure Inference) separately, or save them as the default configuration (`API.json`).
 
-### 3. 运行分析
-1.  点击 "选择文件" 加载包含光谱数据的 JSON 文件。
-2.  你可以点击 "一键分析" 自动运行全流程。
-3.  或者按步骤点击 "Step1 分析" -> "Step2 分析" -> "Step3 分析" 查看中间结果。
+### 3. Run Analysis
+1.  Click "Select File" to load a JSON file containing spectral data.
+2.  You can click "One-Click Analysis" to automatically run the full process.
+3.  Or click "Step1 Analysis" -> "Step2 Analysis" -> "Step3 Analysis" step by step to view intermediate results.
 
 ---
 
-# 数据输入说明 (JSON)
+# Data Input Instructions (JSON)
 
-程序支持通过 JSON 文件批量输入光谱数据。请参考以下格式编写 JSON 文件（例如 `input.json`）。
+The program supports batch input of spectral data via JSON files. Please refer to the following format to write your JSON file (e.g., `input.json`).
 
-## JSON 结构示例
+## JSON Structure Example
 
 ```json
 {
@@ -74,39 +74,39 @@ python gui.py
 }
 ```
 
-## 字段说明
+## Field Descriptions
 
-### 1. 质谱 (mass)
-*   **类型**: 数字数组 `[float]`
-*   **说明**: 输入质谱中观察到的主要离子峰的质荷比 (m/z)。通常包含分子离子峰和主要碎片峰。
+### 1. Mass Spectrometry (mass)
+*   **Type**: Number Array `[float]`
+*   **Description**: Input the mass-to-charge ratios (m/z) of the main ion peaks observed in the mass spectrum. Usually includes the molecular ion peak and major fragment peaks.
 
-### 2. 红外光谱 (ir)
-*   **类型**: 数字数组 `[float]`
-*   **说明**: 输入主要吸收峰的波数 (cm⁻¹)。
+### 2. Infrared Spectroscopy (ir)
+*   **Type**: Number Array `[float]`
+*   **Description**: Input the wavenumbers (cm⁻¹) of the main absorption peaks.
 
-### 3. 氢谱 (h_nmr)
-*   **类型**: 对象数组 `[Object]`
-*   **字段**:
-    *   `shift`: 化学位移 (ppm)
-    *   `area`: 积分面积 (相对氢原子数)，支持数字或字符串（如 "N/A"）
-    *   `multiplicity`: 峰的裂分重数 (1=单峰, 2=二重峰, 3=三重峰, etc.)
+### 3. Proton NMR (h_nmr)
+*   **Type**: Object Array `[Object]`
+*   **Fields**:
+    *   `shift`: Chemical shift (ppm)
+    *   `area`: Integration area (relative number of hydrogen atoms), supports numbers or strings (e.g., "N/A")
+    *   `multiplicity`: Peak splitting multiplicity (1=singlet, 2=doublet, 3=triplet, etc.)
 
-### 4. 碳谱 (c_nmr)
-*   **类型**: 字典 `Object`
-*   **说明**: 包含 `bb` (宽带解耦), `dept90`, `dept135` 三个字段。
-*   **字段详情**:
-    *   `bb`: 列表 `[[shift, count], ...]`
-        *   `shift`: 化学位移 (ppm)
-        *   `count`: 峰的数量，支持数字或字符串（如 `">1"`, `"1"`）
-    *   `dept90`: 列表 `[shift, ...]`
-        *   仅需列出在 DEPT-90 谱图中出现的峰的化学位移。
-    *   `dept135`: 列表 `[[shift, polarity], ...]`
-        *   `shift`: 化学位移 (ppm)
-        *   `polarity`: 峰的极性 (`1` 为向上, `-1` 为向下)
+### 4. Carbon NMR (c_nmr)
+*   **Type**: Dictionary `Object`
+*   **Description**: Contains three fields: `bb` (Broadband Decoupled), `dept90`, and `dept135`.
+*   **Field Details**:
+    *   `bb`: List `[[shift, count], ...]`
+        *   `shift`: Chemical shift (ppm)
+        *   `count`: Number of peaks, supports numbers or strings (e.g., `">1"`, `"1"`)
+    *   `dept90`: List `[shift, ...]`
+        *   Only list the chemical shifts of peaks appearing in the DEPT-90 spectrum.
+    *   `dept135`: List `[[shift, polarity], ...]`
+        *   `shift`: Chemical shift (ppm)
+        *   `polarity`: Peak polarity (`1` for up, `-1` for down)
 
-**推断逻辑**:
-程序会自动根据 DEPT 数据推断碳类型：
-*   DEPT-90 有峰 -> **CH**
-*   DEPT-135 向下 (-1) -> **CH2**
-*   DEPT-135 向上 (+1) 且不在 DEPT-90 -> **CH3**
-*   仅在 BB 谱中有峰 -> **Cq** (季碳)
+**Inference Logic**:
+The program automatically infers carbon types based on DEPT data:
+*   DEPT-90 has peak -> **CH**
+*   DEPT-135 down (-1) -> **CH2**
+*   DEPT-135 up (+1) and not in DEPT-90 -> **CH3**
+*   Peak only in BB spectrum -> **Cq** (Quaternary Carbon)
