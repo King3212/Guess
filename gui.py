@@ -5,7 +5,7 @@ import threading
 import queue
 import time
 import tkinter as tk
-from tkinter import filedialog, messagebox, scrolledtext
+from tkinter import filedialog, messagebox, scrolledtext, ttk
 
 from guess import get_data_from_json, gen_datas, gen_prompt_1, gen_prompt_2, ask_AI
 
@@ -28,7 +28,14 @@ class RedirectStdout:
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("光谱推结构助手")
+        
+        # Load locales
+        self.lang = 'zh'
+        self.locales = {}
+        self._load_locales()
+        self.translatable_widgets = []
+
+        self.title(self.tr("window_title"))
         self.geometry("900x600")
 
         self.file_path = tk.StringVar()
@@ -63,28 +70,92 @@ class App(tk.Tk):
         # 启动时尝试自动加载默认配置
         self._auto_load_default_config()
 
+    def _load_locales(self):
+        try:
+            if getattr(sys, 'frozen', False):
+                base_dir = os.path.dirname(sys.executable)
+            else:
+                base_dir = os.path.dirname(__file__)
+            path = os.path.join(base_dir, "locales.json")
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    self.locales = json.load(f)
+            else:
+                # Fallback if file missing
+                self.locales = {}
+        except Exception as e:
+            print(f"Failed to load locales: {e}")
+            self.locales = {}
+
+    def tr(self, key, *args):
+        lang_data = self.locales.get(self.lang, {})
+        text = lang_data.get(key, key)
+        if args:
+            try:
+                return text.format(*args)
+            except:
+                return text
+        return text
+
+    def _register_widget(self, widget, key):
+        self.translatable_widgets.append((widget, key))
+        # Set initial text
+        try:
+            widget.configure(text=self.tr(key))
+        except:
+            pass
+        return widget
+
+    def _update_texts(self):
+        self.title(self.tr("window_title"))
+        for widget, key in self.translatable_widgets:
+            try:
+                widget.configure(text=self.tr(key))
+            except:
+                pass
+
+    def _on_language_change(self, event):
+        selection = self.combo_lang.get()
+        if selection == "中文":
+            self.lang = 'zh'
+        else:
+            self.lang = 'en'
+        self._update_texts()
+
     def _build_widgets(self):
+        # Language selection
+        lang_frame = tk.Frame(self)
+        lang_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        self.lbl_lang = self._register_widget(tk.Label(lang_frame), "language_label")
+        self.lbl_lang.pack(side=tk.LEFT)
+        
+        self.combo_lang = ttk.Combobox(lang_frame, values=["中文", "English"], state="readonly", width=10)
+        self.combo_lang.pack(side=tk.LEFT, padx=5)
+        self.combo_lang.set("中文" if self.lang == 'zh' else "English")
+        self.combo_lang.bind("<<ComboboxSelected>>", self._on_language_change)
+
         # API 配置区域
-        api_frame = tk.LabelFrame(self, text="AI API 配置")
+        api_frame = self._register_widget(tk.LabelFrame(self), "api_config_title")
         api_frame.pack(fill=tk.X, padx=10, pady=5)
 
         # Grid layout
         # Row 0: Headers
-        tk.Label(api_frame, text="API 1 (Step 3)", font=("Arial", 10, "bold")).grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        tk.Label(api_frame, text="API 2 (Step 2)", font=("Arial", 10, "bold")).grid(row=0, column=2, sticky="ew", padx=5, pady=5)
+        self._register_widget(tk.Label(api_frame, font=("Arial", 10, "bold")), "api_1_label").grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        self._register_widget(tk.Label(api_frame, font=("Arial", 10, "bold")), "api_2_label").grid(row=0, column=2, sticky="ew", padx=5, pady=5)
 
         # Row 1: Base URL
-        tk.Label(api_frame, text="Base URL:").grid(row=1, column=0, sticky="e", padx=5, pady=2)
+        self._register_widget(tk.Label(api_frame), "base_url_label").grid(row=1, column=0, sticky="e", padx=5, pady=2)
         tk.Entry(api_frame, textvariable=self.base_url_1).grid(row=1, column=1, sticky="ew", padx=5, pady=2)
         tk.Entry(api_frame, textvariable=self.base_url_2).grid(row=1, column=2, sticky="ew", padx=5, pady=2)
 
         # Row 2: API Key
-        tk.Label(api_frame, text="API Key:").grid(row=2, column=0, sticky="e", padx=5, pady=2)
+        self._register_widget(tk.Label(api_frame), "api_key_label").grid(row=2, column=0, sticky="e", padx=5, pady=2)
         tk.Entry(api_frame, textvariable=self.api_key_1, show="*").grid(row=2, column=1, sticky="ew", padx=5, pady=2)
         tk.Entry(api_frame, textvariable=self.api_key_2, show="*").grid(row=2, column=2, sticky="ew", padx=5, pady=2)
 
         # Row 3: Model
-        tk.Label(api_frame, text="Model:").grid(row=3, column=0, sticky="e", padx=5, pady=2)
+        self._register_widget(tk.Label(api_frame), "model_label").grid(row=3, column=0, sticky="e", padx=5, pady=2)
         tk.Entry(api_frame, textvariable=self.model_1).grid(row=3, column=1, sticky="ew", padx=5, pady=2)
         tk.Entry(api_frame, textvariable=self.model_2).grid(row=3, column=2, sticky="ew", padx=5, pady=2)
 
@@ -92,9 +163,9 @@ class App(tk.Tk):
         btn_frame = tk.Frame(api_frame)
         btn_frame.grid(row=0, column=3, rowspan=4, padx=10, pady=5, sticky="ns")
         
-        tk.Button(btn_frame, text="打开配置文件", command=self.open_api_config_file).pack(fill=tk.X, pady=2)
-        tk.Button(btn_frame, text="从配置加载", command=self.load_api_config).pack(fill=tk.X, pady=2)
-        tk.Button(btn_frame, text="保存为默认配置", command=self.save_default_api_config).pack(fill=tk.X, pady=2)
+        self._register_widget(tk.Button(btn_frame, command=self.open_api_config_file), "btn_open_config").pack(fill=tk.X, pady=2)
+        self._register_widget(tk.Button(btn_frame, command=self.load_api_config), "btn_load_config").pack(fill=tk.X, pady=2)
+        self._register_widget(tk.Button(btn_frame, command=self.save_default_api_config), "btn_save_default").pack(fill=tk.X, pady=2)
 
         # Configure columns
         api_frame.columnconfigure(1, weight=1)
@@ -104,15 +175,15 @@ class App(tk.Tk):
         top_frame = tk.Frame(self)
         top_frame.pack(fill=tk.X, padx=10, pady=5)
 
-        tk.Label(top_frame, text="光谱 JSON 文件:").pack(side=tk.LEFT)
+        self._register_widget(tk.Label(top_frame), "file_label").pack(side=tk.LEFT)
         tk.Entry(top_frame, textvariable=self.file_path).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        tk.Button(top_frame, text="选择文件", command=self.choose_file).pack(side=tk.LEFT)
-        tk.Button(top_frame, text="保存", command=self.save_file).pack(side=tk.LEFT, padx=5)
-        tk.Button(top_frame, text="另存为", command=self.save_file_as).pack(side=tk.LEFT, padx=5)
-        tk.Button(top_frame, text="Step1 分析", command=self.start_step1).pack(side=tk.LEFT, padx=5)
-        tk.Button(top_frame, text="Step2 分析", command=self.start_step2).pack(side=tk.LEFT, padx=5)
-        tk.Button(top_frame, text="Step3 分析", command=self.start_step3).pack(side=tk.LEFT, padx=5)
-        tk.Button(top_frame, text="一键分析", command=self.start_analysis).pack(side=tk.LEFT, padx=5)
+        self._register_widget(tk.Button(top_frame, command=self.choose_file), "btn_select_file").pack(side=tk.LEFT)
+        self._register_widget(tk.Button(top_frame, command=self.save_file), "btn_save").pack(side=tk.LEFT, padx=5)
+        self._register_widget(tk.Button(top_frame, command=self.save_file_as), "btn_save_as").pack(side=tk.LEFT, padx=5)
+        self._register_widget(tk.Button(top_frame, command=self.start_step1), "btn_step1").pack(side=tk.LEFT, padx=5)
+        self._register_widget(tk.Button(top_frame, command=self.start_step2), "btn_step2").pack(side=tk.LEFT, padx=5)
+        self._register_widget(tk.Button(top_frame, command=self.start_step3), "btn_step3").pack(side=tk.LEFT, padx=5)
+        self._register_widget(tk.Button(top_frame, command=self.start_analysis), "btn_analyze_all").pack(side=tk.LEFT, padx=5)
 
         # 中间区域：使用 PanedWindow 实现可调整大小的分栏
         middle_frame = tk.Frame(self)
@@ -123,13 +194,13 @@ class App(tk.Tk):
         h_paned.pack(fill=tk.BOTH, expand=True)
 
         # Source JSON Frame
-        json_frame = tk.LabelFrame(h_paned, text="Source JSON")
+        json_frame = self._register_widget(tk.LabelFrame(h_paned), "frame_source_json")
         self.text_json = scrolledtext.ScrolledText(json_frame, wrap=tk.WORD)
         self.text_json.pack(fill=tk.BOTH, expand=True)
         h_paned.add(json_frame, minsize=200, width=300)
 
         # Step1 Frame
-        step1_frame = tk.LabelFrame(h_paned, text="Step1: 基础数据 (datas)")
+        step1_frame = self._register_widget(tk.LabelFrame(h_paned), "frame_step1")
         self.text_datas = scrolledtext.ScrolledText(step1_frame, wrap=tk.WORD)
         self.text_datas.pack(fill=tk.BOTH, expand=True)
         # 设置初始宽度为300 (窗口默认900宽，约占1/3)
@@ -140,21 +211,21 @@ class App(tk.Tk):
         h_paned.add(v_paned, minsize=300)
 
         # Step2 Frame
-        step2_frame = tk.LabelFrame(v_paned, text="Step2: 官能团推测")
+        step2_frame = self._register_widget(tk.LabelFrame(v_paned), "frame_step2")
         self.text_fg = scrolledtext.ScrolledText(step2_frame, wrap=tk.WORD, height=10)
         self.text_fg.pack(fill=tk.BOTH, expand=True)
         self.text_fg.tag_config("thinking", foreground="gray")
         v_paned.add(step2_frame, minsize=100)
 
         # Step3 Frame
-        step3_frame = tk.LabelFrame(v_paned, text="Step3: 分子式与结构推测")
+        step3_frame = self._register_widget(tk.LabelFrame(v_paned), "frame_step3")
         self.text_struct = scrolledtext.ScrolledText(step3_frame, wrap=tk.WORD)
         self.text_struct.pack(fill=tk.BOTH, expand=True)
         self.text_struct.tag_config("thinking", foreground="gray")
         v_paned.add(step3_frame, minsize=100)
 
         # 底部控制台
-        bottom_frame = tk.LabelFrame(self, text="控制台输出 (调试/流式输出)")
+        bottom_frame = self._register_widget(tk.LabelFrame(self), "frame_console")
         bottom_frame.pack(fill=tk.X, expand=False, padx=10, pady=(0, 10))
 
         self.console = scrolledtext.ScrolledText(bottom_frame, height=8, wrap=tk.WORD)
@@ -163,8 +234,8 @@ class App(tk.Tk):
 
     def choose_file(self):
         path = filedialog.askopenfilename(
-            title="选择光谱 JSON 文件",
-            filetypes=[("JSON 文件", "*.json"), ("所有文件", "*.*")],
+            title=self.tr("msg_select_json"),
+            filetypes=[(self.tr("file_type_json"), "*.json"), (self.tr("file_type_all"), "*.*")],
         )
         if path:
             self.file_path.set(path)
@@ -174,7 +245,7 @@ class App(tk.Tk):
                 self.text_json.delete("1.0", tk.END)
                 self.text_json.insert(tk.END, content)
             except Exception as e:
-                messagebox.showerror("错误", f"读取文件失败: {e}")
+                messagebox.showerror(self.tr("title_error"), self.tr("msg_read_fail", e))
 
     def save_file(self):
         path = self.file_path.get()
@@ -186,15 +257,15 @@ class App(tk.Tk):
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
-            messagebox.showinfo("提示", f"文件已保存: {path}")
+            messagebox.showinfo(self.tr("title_info"), self.tr("msg_file_saved", path))
         except Exception as e:
-            messagebox.showerror("错误", f"保存文件失败: {e}")
+            messagebox.showerror(self.tr("title_error"), self.tr("msg_save_fail", e))
 
     def save_file_as(self):
         path = filedialog.asksaveasfilename(
-            title="另存为",
+            title=self.tr("btn_save_as"),
             defaultextension=".json",
-            filetypes=[("JSON 文件", "*.json"), ("所有文件", "*.*")],
+            filetypes=[(self.tr("file_type_json"), "*.json"), (self.tr("file_type_all"), "*.*")],
         )
         if path:
             self.file_path.set(path)
@@ -202,9 +273,9 @@ class App(tk.Tk):
             try:
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(content)
-                messagebox.showinfo("提示", f"文件已保存: {path}")
+                messagebox.showinfo(self.tr("title_info"), self.tr("msg_file_saved", path))
             except Exception as e:
-                messagebox.showerror("错误", f"保存文件失败: {e}")
+                messagebox.showerror(self.tr("title_error"), self.tr("msg_save_fail", e))
 
     def _auto_load_default_config(self):
         """程序启动时自动尝试从默认配置文件加载 API 设置。"""
@@ -225,8 +296,8 @@ class App(tk.Tk):
     def open_api_config_file(self):
         """选择一个配置文件（json），可用于加载/保存。"""
         path = filedialog.askopenfilename(
-            title="选择 API 配置文件",
-            filetypes=[("JSON 文件", "*.json"), ("所有文件", "*.*")],
+            title=self.tr("msg_select_config"),
+            filetypes=[(self.tr("file_type_json"), "*.json"), (self.tr("file_type_all"), "*.*")],
         )
         if path:
             # 将选择的路径设为当前默认配置路径
@@ -244,11 +315,11 @@ class App(tk.Tk):
             self.api_key_2.set(data.get("api_key_2", ""))
             self.base_url_2.set(data.get("base_url_2", ""))
             self.model_2.set(data.get("model_2", ""))
-            messagebox.showinfo("提示", f"已从 {os.path.basename(self.default_config_path)} 加载 API 配置。")
+            messagebox.showinfo(self.tr("title_info"), self.tr("msg_config_loaded", os.path.basename(self.default_config_path)))
         except FileNotFoundError:
-            messagebox.showwarning("提示", f"未找到配置文件: {self.default_config_path}，请先选择或保存配置。")
+            messagebox.showwarning(self.tr("title_info"), self.tr("msg_config_not_found", self.default_config_path))
         except Exception as e:
-            messagebox.showerror("错误", f"读取 qwenAPI.json 失败: {e}")
+            messagebox.showerror(self.tr("title_error"), self.tr("msg_read_config_fail", e))
 
     def save_default_api_config(self):
         """将当前输入的 API 设置保存到默认配置文件。"""
@@ -264,14 +335,14 @@ class App(tk.Tk):
         try:
             with open(self.default_config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-            messagebox.showinfo("提示", f"已保存为默认配置: {self.default_config_path}")
+            messagebox.showinfo(self.tr("title_info"), self.tr("msg_config_saved", self.default_config_path))
         except Exception as e:
-            messagebox.showerror("错误", f"保存配置失败: {e}")
+            messagebox.showerror(self.tr("title_error"), self.tr("msg_save_config_fail", e))
 
     def start_analysis(self):
         json_content = self.text_json.get("1.0", tk.END).strip()
         if not json_content:
-            messagebox.showwarning("提示", "JSON 内容为空，请选择文件或输入 JSON。")
+            messagebox.showwarning(self.tr("title_info"), self.tr("msg_json_empty"))
             return
 
         # 清空全部区域，开始完整流水线
@@ -290,7 +361,7 @@ class App(tk.Tk):
     def start_step1(self):
         json_content = self.text_json.get("1.0", tk.END).strip()
         if not json_content:
-            messagebox.showwarning("提示", "JSON 内容为空，请选择文件或输入 JSON。")
+            messagebox.showwarning(self.tr("title_info"), self.tr("msg_json_empty"))
             return
 
         # 只清空 datas 区域和控制台输出
@@ -304,7 +375,7 @@ class App(tk.Tk):
     def start_step2(self):
         json_content = self.text_json.get("1.0", tk.END).strip()
         if not json_content and not self._last_json_content:
-            messagebox.showwarning("提示", "JSON 内容为空，请选择文件或输入 JSON。")
+            messagebox.showwarning(self.tr("title_info"), self.tr("msg_json_empty"))
             return
 
         # 清空 step2 区域和控制台输出
@@ -319,7 +390,7 @@ class App(tk.Tk):
     def start_step3(self):
         json_content = self.text_json.get("1.0", tk.END).strip()
         if not json_content and not self._last_json_content:
-            messagebox.showwarning("提示", "JSON 内容为空，请选择文件或输入 JSON。")
+            messagebox.showwarning(self.tr("title_info"), self.tr("msg_json_empty"))
             return
 
         # 清空 step3 区域 and console
@@ -341,7 +412,7 @@ class App(tk.Tk):
             time.sleep(0.1)
             self._run_step3(json_content)
         except Exception as e:
-            messagebox.showerror("错误", f"分析流水线失败: {e}")
+            messagebox.showerror(self.tr("title_error"), self.tr("msg_pipeline_fail", e))
 
     def _call_ai_stream(self, prompt: str, target_widget: scrolledtext.ScrolledText, type:int) -> str:
         """调用 AI，将流式增量实时写入指定文本框和控制台，并返回完整结果。"""
@@ -407,7 +478,7 @@ class App(tk.Tk):
                     on_thinking=on_thinking,
                 )
         except Exception as e:
-            messagebox.showerror("错误", f"调用 AI 失败: {e}")
+            messagebox.showerror(self.tr("title_error"), self.tr("msg_ai_fail", e))
             return ""
         finally:
             flush_buffer()
@@ -422,13 +493,13 @@ class App(tk.Tk):
         try:
             data = json.loads(json_content)
         except Exception as e:
-            messagebox.showerror("错误", f"解析 JSON 失败: {e}")
+            messagebox.showerror(self.tr("title_error"), self.tr("msg_json_parse_fail", e))
             return
 
         try:
-            datas = gen_datas(data)
+            datas = gen_datas(data, lang=self.lang)
         except Exception as e:
-            messagebox.showerror("错误", f"解析光谱数据失败: {e}")
+            messagebox.showerror(self.tr("title_error"), self.tr("msg_data_parse_fail", e))
             return
 
         # 缓存并显示
@@ -441,17 +512,17 @@ class App(tk.Tk):
         if datas is None:
             try:
                 data = json.loads(json_content)
-                datas = gen_datas(data)
+                datas = gen_datas(data, lang=self.lang)
             except Exception as e:
-                messagebox.showerror("错误", f"生成 datas 失败: {e}")
+                messagebox.showerror(self.tr("title_error"), self.tr("msg_gen_data_fail", e))
                 return
 
         self.cached_datas = datas
 
         # 调用 AI 推测官能团
-        self._append_text(self.text_fg, "正在调用 AI 推测官能团...\n")
+        self._append_text(self.text_fg, self.tr("status_calling_ai_fg"))
         fg_result = self._call_ai_stream(
-            gen_prompt_1(datas),
+            gen_prompt_1(datas, lang=self.lang),
             target_widget=self.text_fg,
             type=0
         )
@@ -467,9 +538,9 @@ class App(tk.Tk):
         if datas is None:
             try:
                 data = json.loads(json_content)
-                datas = gen_datas(data)
+                datas = gen_datas(data, lang=self.lang)
             except Exception as e:
-                messagebox.showerror("错误", f"生成 datas 失败: {e}")
+                messagebox.showerror(self.tr("title_error"), self.tr("msg_gen_data_fail", e))
                 return
 
         # 确保有 fg_result
@@ -479,10 +550,10 @@ class App(tk.Tk):
             fg = self._run_step2(json_content)
 
         findings_chain = "\n".join(datas)
-        findings = (fg or "") + "\n以下是证据链:\n" + findings_chain + "\n"
-        self._append_text(self.text_struct, "正在调用 AI 推测分子式和结构...\n")
+        findings = (fg or "") + self.tr("text_evidence_chain") + findings_chain + "\n"
+        self._append_text(self.text_struct, self.tr("status_calling_ai_struct"))
         self._call_ai_stream(
-            gen_prompt_2(findings.splitlines()),
+            gen_prompt_2(findings.splitlines(), lang=self.lang),
             target_widget=self.text_struct,
             type=1
         )

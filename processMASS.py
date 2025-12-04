@@ -1,5 +1,33 @@
 import sys
 import json
+import os
+
+def load_locales():
+    try:
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(__file__)
+        path = os.path.join(base_dir, "locales.json")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+LOCALES = load_locales()
+
+def tr(key, lang='zh', *args):
+    lang_data = LOCALES.get(lang, {})
+    text = lang_data.get(key, key)
+    if args:
+        try:
+            return text.format(*args)
+        except:
+            return text
+    return text
+
 # 常见碎片及其质量
 COMMON_FRAGMENTS = {
     14: "CH2 (Methylene)",
@@ -35,16 +63,16 @@ def analyze_masses(masses):
     
     return findings
 
-def processMASS(masses):
+def processMASS(masses, lang='zh'):
         for mass in masses:
             assert type(mass) == float or type(mass) == int, "Mass values must be numbers." 
             assert mass > 0, "Mass values must be positive."
         
         results = analyze_masses(masses)
         
-        result_text = f"MASS分析结果 (共 {len(results)} 条线索):\n"
-        result_text += f"分子质量可能为:{max(masses)}\n"
-        result_text += "\n".join([f"质量差 {diff}: 可能为 {group} ({m1} -> {m2})" for diff, group, m1, m2 in results])
+        result_text = tr("mass_result_title", lang, len(results))
+        result_text += tr("mass_possible_mw", lang, max(masses))
+        result_text += "\n".join([tr("mass_diff_line", lang, diff, group, m1, m2) for diff, group, m1, m2 in results])
         print(result_text)
         return result_text
     

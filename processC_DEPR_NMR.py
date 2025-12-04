@@ -1,4 +1,32 @@
 import sys
+import json
+import os
+
+def load_locales():
+    try:
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(__file__)
+        path = os.path.join(base_dir, "locales.json")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+LOCALES = load_locales()
+
+def tr(key, lang='zh', *args):
+    lang_data = LOCALES.get(lang, {})
+    text = lang_data.get(key, key)
+    if args:
+        try:
+            return text.format(*args)
+        except:
+            return text
+    return text
 
 # 常见 13C 化学位移范围 (ppm)
 COMMON_C_SHIFTS = [
@@ -111,7 +139,7 @@ def interpret_dept_data(bb_peaks, dept90_shifts, dept135_peaks, tolerance=1.0):
     return resolved
 
 
-def processC_DEPR_NMR(data):
+def processC_DEPR_NMR(data, lang='zh'):
     """与 processMASS/processIR/processH_NMR 风格一致的 13C/DEPT 处理函数。
 
     输入格式（仅支持新格式）：
@@ -139,17 +167,17 @@ def processC_DEPR_NMR(data):
 
     for shift, tcode, count in peaks_resolved:
         type_str = type_map.get(tcode, 'Unknown')
-        line = f"化学位移{shift} ppm；类型为：{type_str}；数量：{count}；"
+        line = tr("cnmr_line_format", lang, shift, type_str, count)
         result_lines.append(line)
         peaks_for_analysis.append((shift, type_str))
 
     # 运行现有的化学位移到基团的分析并打印
     results = analyze_c_nmr(peaks_for_analysis)
 
-    lines = [f"C_DEPT_NMR分析结果 (共 {len(results)} 个碳):"]
+    lines = [tr("cnmr_result_title", lang, len(results))]
     for res in results:
-        header = f"位移 {res['shift']} ppm ({res['type']}):"
-        group_lines = [f"  - 可能为: {g}" for g in res["groups"]]
+        header = tr("cnmr_peak_line", lang, res['shift'], res['type'])
+        group_lines = [tr("cnmr_possible_line", lang, g) for g in res["groups"]]
         lines.append("\n".join([header] + group_lines))
 
     result_text = "\n".join(lines)

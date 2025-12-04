@@ -1,4 +1,32 @@
 import sys
+import json
+import os
+
+def load_locales():
+    try:
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(__file__)
+        path = os.path.join(base_dir, "locales.json")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+LOCALES = load_locales()
+
+def tr(key, lang='zh', *args):
+    lang_data = LOCALES.get(lang, {})
+    text = lang_data.get(key, key)
+    if args:
+        try:
+            return text.format(*args)
+        except:
+            return text
+    return text
 
 # 常见红外吸收峰范围 (单位: cm^-1)
 # 格式: (min, max, description)
@@ -42,7 +70,7 @@ def analyze_ir(wavenumbers):
     return findings
 
 
-def processIR(wavenumbers):
+def processIR(wavenumbers, lang='zh'):
     """与 processMASS 风格一致的 IR 处理函数。"""
     for wn in wavenumbers:
         assert type(wn) == float or type(wn) == int, "Wavenumbers must be numbers."
@@ -50,11 +78,11 @@ def processIR(wavenumbers):
 
     results = analyze_ir(wavenumbers)
 
-    result_text = f"IR分析结果 (共 {len(results)} 个峰):\n"
+    result_text = tr("ir_result_title", lang, len(results))
     result_text += "\n".join(
         [
-            "波数 {0} cm^-1:\n".format(wn)
-            + "\n".join([f"  - 可能为: {g}" for g in groups])
+            tr("ir_wavenumber_line", lang, wn)
+            + "\n".join([tr("ir_possible_line", lang, g) for g in groups])
             for wn, groups in results
         ]
     )

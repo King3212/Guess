@@ -4,26 +4,52 @@ from processIR import processIR
 from processMASS import processMASS
 import sys
 import json
+import os
 from openai import OpenAI
-def gen_prompt_1(datas):
+
+def load_locales():
+    try:
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(__file__)
+        path = os.path.join(base_dir, "locales.json")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+LOCALES = load_locales()
+
+def tr(key, lang='zh', *args):
+    lang_data = LOCALES.get(lang, {})
+    text = lang_data.get(key, key)
+    if args:
+        try:
+            return text.format(*args)
+        except:
+            return text
+    return text
+
+def gen_prompt_1(datas, lang='zh'):
     # 一个生成基团列表的prompt生成
-    prompt = f"""你是一个有经验的有机化学家，擅长通过质谱 (MASS)、红外光谱 (IR)、氢核磁共振 (1H NMR) 和碳核
-                 磁共振 (13C/DEPT NMR) 数据来推断有机分子可能的基团列表。\n"""
+    prompt = tr("prompt_1_intro", lang)
     for data in datas:
         prompt += data + "\n"
-    prompt += "请综合以上信息，给出可能的基团列表和几个可能的化学式，确保化学式的相对分子质量与MASS推测的分子质量相符，无需给出理由。\n"
+    prompt += tr("prompt_1_instruction", lang)
     
     return prompt
 
-def gen_prompt_2(findings):
+def gen_prompt_2(findings, lang='zh'):
     # 一个生成分子式和结构的prompt生成
-    prompt = f"""你是一个有经验的有机化学家，擅长通过质谱 (MASS)、红外光谱 (IR)、氢核磁共振 (1H NMR) 和碳核
-                 磁共振 (13C/DEPT NMR) 等数据来推断有机分子的可能存在的基团并推断该有机分子可能的结构。\n"""
+    prompt = tr("prompt_2_intro", lang)
     if isinstance(findings, list):
         prompt += "\n".join(findings)
     else:
         prompt += findings
-    prompt += "请综合以上信息，推断该有机分子可能的结构,给出物质名称和结构简式，无需给出理由。\n"
+    prompt += tr("prompt_2_instruction", lang)
     
     return prompt
     
@@ -90,18 +116,18 @@ def get_data_from_json(file_path):
         data = json.load(f)
     return data
 
-def gen_datas(data):
+def gen_datas(data, lang='zh'):
     datas = []
     # 质谱：JSON: "mass" -> processMASS: 列表[数值]
     if "mass" in data:
         mass_data = data["mass"]
-        mass_result = processMASS(mass_data)
+        mass_result = processMASS(mass_data, lang=lang)
         datas.append(mass_result)
 
     # IR：JSON: "ir" -> processIR: 列表[数值]
     if "ir" in data:
         ir_data = data["ir"]
-        ir_result = processIR(ir_data)
+        ir_result = processIR(ir_data, lang=lang)
         datas.append(ir_result)
 
     # 1H NMR：JSON: "h_nmr" (dict 列表) -> processH_NMR: 列表[(shift, area, mult)]
@@ -113,7 +139,7 @@ def gen_datas(data):
             area = item.get("area")
             mult = int(item.get("multiplicity", 1))
             h_nmr_data.append((shift, area, mult))
-        h_nmr_result = processH_NMR(h_nmr_data)
+        h_nmr_result = processH_NMR(h_nmr_data, lang=lang)
         datas.append(h_nmr_result)
 
     # 13C/DEPT NMR：JSON: "c_nmr" (dict 列表) -> processC_DEPR_NMR: 列表[(shift, type_str)]
@@ -122,7 +148,7 @@ def gen_datas(data):
         
         if isinstance(c_nmr_raw, dict):
             # 新格式：直接传递包含 bb, dept90, dept135 的字典
-            c_dept_nmr_result = processC_DEPR_NMR(c_nmr_raw)
+            c_dept_nmr_result = processC_DEPR_NMR(c_nmr_raw, lang=lang)
             if isinstance(c_dept_nmr_result, list):
                 datas.append(f"13C/DEPT NMR Data: {json.dumps(c_dept_nmr_result)}")
             else:
