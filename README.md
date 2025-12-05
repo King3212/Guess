@@ -2,11 +2,14 @@
 
 [中文说明 (Chinese README)](README_zh.md)
 
+## Introduction
+
 This is an AI-based tool for inferring organic molecular structures. It integrates the analysis of Mass Spectrometry (Mass), Infrared Spectroscopy (IR), Proton NMR (1H NMR), and Carbon NMR (13C/DEPT NMR) data, utilizing Large Language Models (such as GPT-4, Qwen, DeepSeek, etc.) to progressively infer functional groups and the final molecular structure.
 
-## Features
+### Features
 
 *   **Multi-Spectrum Integrated Analysis**: Supports integration of Mass, IR, 1H NMR, and 13C NMR (BB/DEPT) data.
+    > If you need to add more data types, please provide sample data and interpretation methods in an Issue.
 *   **Graphical User Interface (GUI)**: Provides an intuitive Tkinter interface for easy operation.
 *   **Step-by-Step Inference**:
     *   **Step 1**: Data preprocessing and standardization.
@@ -14,9 +17,11 @@ This is an AI-based tool for inferring organic molecular structures. It integrat
     *   **Step 3**: AI synthesizes the chain of evidence to infer the molecular formula and structural formula.
 *   **Custom AI Configuration**: Supports OpenAI-compatible interfaces, allowing customization of Base URL and Model.
 
-## Installation
+## Usage
 
-### Us
+### Installation
+
+#### Install from Source (Linux / MacOS / Windows)
 
 1.  Ensure Python 3.8 or higher is installed.
 2.  Install dependencies:
@@ -24,42 +29,49 @@ This is an AI-based tool for inferring organic molecular structures. It integrat
     pip install -r requirements.txt
     ```
     *(Note: The GUI uses Python's built-in `tkinter`, which usually does not require separate installation)*
+3.  Run `gui.py` to launch the graphical interface:
+    ```bash
+    python gui.py
+    ```
 
-## User Guide
+#### Use Binary File (Windows Recommended)
 
-### 1. Start the Program
+1.  Download and unzip `Guess-Windows-x86-64.zip`.
+2.  Double-click `Guess.exe` to run.
 
-**Option A: Run Executable (Recommended for Windows)**
-1.  Navigate to the `dist` folder.
-2.  Double-click `GuessUI.exe` to launch the application.
-    *   *Note: The `dist` folder contains necessary configuration files (`API.json`) and examples.*
+### Configure API
 
-**Option B: Run from Source**
-Run `gui.py` to launch the graphical interface:
-```bash
-python gui.py
-```
+Fill in your Large Model API information in the "AI API Configuration" section of the interface:
+*   **Base URL**: API service address (e.g., `https://api.openai.com/v1` or other compatible addresses).
+*   **API Key**: Your API key (do not share with others).
+*   **Model**: The model name to use (models with strong logical reasoning capabilities are recommended).
 
-### 2. Configure API
-Fill in your API information in the "AI API Configuration" section of the interface:
-*   **Base URL**: API service address (e.g., `https://api.openai.com/v1` or other compatible addresses)
-*   **API Key**: Your API key
-*   **Model**: The model name to use (models with strong logical reasoning capabilities are recommended)
+> **Tip**:
+> *   This program provides functionality to use different models for Step 2 and Step 3.
+> *   You can use the API editing function provided by the UI, or open the program directory (default save directory) to create and modify `API.json`.
+> *   An example `API.json` is as follows:
+>     ```json
+>     {
+>         "api_key": "sk-XXXXXXXX",
+>         "base_url_1": "https://api.deepseek.com/v3.2_speciale_expires_on_20251215",
+>         "base_url_2": "https://api.deepseek.com/v1",
+>         "model_1": "deepseek-reasoner",
+>         "model_2": "deepseek-reasoner"
+>     }
+>     ```
+>     The DeepSeek API in the example can be obtained from the [DeepSeek Open Platform](https://platform.deepseek.com/). Please note that you are responsible for the costs.
 
-You can configure different model settings for Step 2 (Functional Group Inference) and Step 3 (Structure Inference) separately, or save them as the default configuration (`API.json`).
+### Run Analysis
 
-### 3. Run Analysis
-1.  Click "Select File" to load a JSON file containing spectral data.
+1.  Click "Select File" to load a JSON file containing spectral data. After loading, you can also modify and save the file content.
 2.  You can click "One-Click Analysis" to automatically run the full process.
 3.  Or click "Step1 Analysis" -> "Step2 Analysis" -> "Step3 Analysis" step by step to view intermediate results.
 
----
-
-# Data Input Instructions (JSON)
+## Data Input Instructions (JSON)
 
 The program supports batch input of spectral data via JSON files. Please refer to the following format to write your JSON file (e.g., `input.json`).
 
-## JSON Structure Example
+### JSON Structure Example
 
 ```json
 {
@@ -85,26 +97,26 @@ The program supports batch input of spectral data via JSON files. Please refer t
 }
 ```
 
-## Field Descriptions
+### Field Descriptions
 
-### 1. Mass Spectrometry (mass)
+#### 1. Mass Spectrometry (mass)
 *   **Type**: Number Array `[float]`
 *   **Description**: Input the mass-to-charge ratios (m/z) of the main ion peaks observed in the mass spectrum. Usually includes the molecular ion peak and major fragment peaks.
 
-### 2. Infrared Spectroscopy (ir)
+#### 2. Infrared Spectroscopy (ir)
 *   **Type**: Number Array `[float]`
 *   **Description**: Input the wavenumbers (cm⁻¹) of the main absorption peaks.
 
-### 3. Proton NMR (h_nmr)
+#### 3. Proton NMR (h_nmr)
 *   **Type**: Object Array `[Object]`
 *   **Fields**:
     *   `shift`: Chemical shift (ppm)
     *   `area`: Integration area (relative number of hydrogen atoms), supports numbers or strings (e.g., "N/A")
     *   `multiplicity`: Peak splitting multiplicity (1=singlet, 2=doublet, 3=triplet, etc.)
 
-### 4. Carbon NMR (c_nmr)
+#### 4. Carbon NMR (c_nmr)
 *   **Type**: Dictionary `Object`
-*   **Description**: Contains three fields: `bb` (Broadband Decoupled), `dept90`, and `dept135`.
+*   **Description**: Contains three fields: `bb` ($^{13}$C NMR), `dept90`, and `dept135`.
 *   **Field Details**:
     *   `bb`: List `[[shift, count], ...]`
         *   `shift`: Chemical shift (ppm)
